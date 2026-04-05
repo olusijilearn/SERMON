@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bible Topic Study + Sermon Explainer • Gemini 2.5</title>
+  <style>
+    :root{
+      --bg:#f7f7f8; --text:#1e1e1e; --card:#fff; --border:#e0e0e0;
+      --muted:#666; --accent:#10a37f; --accent-hover:#0e8f6f; --note-bg:#fafafa;
+      --yellow:#fff176; --col-min:300px;
+      --danger:#b42318; --danger-bg:#fee4e2;
+      --ok:#166534; --ok-bg:#f0fdf4; --ok-border:#bbf7d0;
+    }
+    *{box-sizing:border-box}
+    body {margin:0;font:15px system-ui;background:var(--bg);color:var(--text)}
+    .app {display:grid;grid-template-columns:340px 1fr;gap:12px;min-height:100vh;padding:12px}
+
+    .panel {
+      background:var(--card); border:1px solid var(--border); border-radius:12px;
+      padding:12px; display:flex; flex-direction:column; min-height:0;
+    }
+    select,input,button,textarea {
+      width:100%; margin:6px 0; padding:10px; border-radius:8px;
+      border:1px solid #d0d0d0; background:#fff; color:var(--text); font:14px system-ui;
+    }
+    button {cursor:pointer; font-weight:700; background:var(--accent); color:#fff; border:0}
+    button:hover{background:var(--accent-hover)}
+    button.secondary { background:#f0f0f0; color:#222; border:1px solid #ddd; }
+    button.secondary:hover{ background:#e9e9e9; }
+
+    .versebox {margin:8px 0; padding:8px; border:1px dashed #ccc; border-radius:8px; background:#fafafa}
+    h2 {margin:0 0 8px 0; color:var(--accent); font-size:16px}
+    .toolbar {display:flex; gap:8px; flex-wrap:wrap}
+    .muted {color:var(--muted); font-size:12px}
+
+    .columns-wrap {
+      overflow-x:auto; overflow-y:hidden;
+      display:flex; gap:12px; align-items:stretch; padding-bottom:6px;
+      scroll-snap-type:x proximity;
+    }
+    .col {
+      min-width: var(--col-min);
+      display:flex; flex-direction:column; min-height:0;
+      background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px;
+      scroll-snap-align:start;
+    }
+    .col h2 {margin:0 0 8px 0}
+    .output {
+      flex:1; overflow:auto; padding:10px; border:1px solid #eee; border-radius:8px; background:#fff;
+      max-height: calc(100vh - 240px);
+    }
+
+    mark.hl { background: var(--yellow); padding:0 .08em; border-radius:2px }
+    mark.hl:hover { outline:1px dashed #f2c200; cursor:pointer }
+
+    .notes-composer {
+      position: sticky; top: 0; z-index: 1;
+      background:var(--card); padding-bottom:8px; border-bottom:1px solid var(--border);
+      margin-bottom:8px;
+    }
+    #notes-textarea { height: 120px; resize: vertical; }
+    .notes-list {
+      list-style: none; margin:0; padding:0; border:1px solid #eee; border-radius:8px;
+      background:var(--note-bg); overflow:auto; max-height: calc(100vh - 340px);
+    }
+    .notes-list li {
+      display:flex; gap:8px; align-items:flex-start; padding:10px; border-bottom:1px dashed #e7e7e7;
+    }
+    .notes-list li:last-child { border-bottom:0 }
+    .note-num { font-weight:700; min-width:28px; color:#333 }
+    .note-text { flex:1; white-space:pre-wrap; }
+    .note-actions { display:flex; gap:6px }
+    .btn-x, .btn-edit, .btn-save {
+      background:#f0f0f0; color:#333; border:1px solid #ddd; border-radius:6px; padding:0 8px; height:28px; line-height:26px; cursor:pointer
+    }
+
+    .sectionBox{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px;
+      background:#fff;
+      margin-top:10px;
+    }
+    #sermonText{ height:160px; resize:vertical; }
+    #sermonVerses{ height:120px; resize:vertical; }
+
+    .stmtList {
+      list-style:none; padding:0; margin:0;
+      border:1px solid #eee; border-radius:10px; overflow:auto;
+      max-height: 240px;
+      background:#fff;
+    }
+    .stmtList li{
+      padding:10px; border-bottom:1px dashed #e7e7e7; cursor:pointer;
+    }
+    .stmtList li:last-child{ border-bottom:0 }
+    .stmtList li.active { background:#f4fffb; outline:1px solid rgba(16,163,127,.25); }
+    .badge{
+      display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px;
+      border:1px solid var(--border); background:#fafafa; margin-right:6px;
+    }
+
+    .errorBox{
+      border:1px solid #fecaca; background:var(--danger-bg); color:var(--danger);
+      border-radius:10px; padding:10px; margin-top:8px; display:none;
+      font-size:13px; white-space:pre-wrap;
+    }
+    .okBox{
+      border:1px solid var(--ok-border); background:var(--ok-bg); color:var(--ok);
+      border-radius:10px; padding:10px; margin-top:8px; display:none;
+      font-size:13px; white-space:pre-wrap;
+    }
+    .miniBox{
+      border:1px solid var(--border); background:#fafafa; color:#222;
+      border-radius:10px; padding:8px; margin-top:8px; display:none;
+      font-size:12px; white-space:pre-wrap;
+    }
+    .tipBox{
+      border:1px solid var(--border); background:#fafafa; color:#222;
+      border-radius:10px; padding:8px; margin-top:8px; font-size:12px; line-height:1.5;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <section class="panel">
+    <h2>Bible Topic Study + Sermon Explainer</h2>
+
+    <input id="apikey" placeholder="Paste Gemini API key (AIza...)" />
+    <div class="toolbar">
+      <button id="savekey" type="button">Save Key</button>
+      <button id="clearkey" type="button" class="secondary">Clear</button>
+    </div>
+
+    <div class="toolbar">
+      <button id="saveJsonBtn" type="button">💾 Save Notes</button>
+      <button id="loadJsonBtn" type="button" class="secondary">📂 Load Notes File</button>
+      <input type="file" id="loadJsonInput" style="display:none" accept=".json" />
+    </div>
+    <div class="muted">Tip: run a local server to auto-load notes.json at start.</div>
+
+    <div class="sectionBox">
+      <div class="muted"><b>Topic Study (Framework Mode)</b></div>
+      <input id="topicInput" placeholder="Enter Topic e.g. Grace, Faith, Mercy, Holiness" />
+      <div class="toolbar">
+        <button id="analyzeTopicBtn" type="button">Study Topic</button>
+        <button id="clearTopicBtn" type="button" class="secondary">Clear</button>
+      </div>
+      <div class="tipBox">
+        Uses your study framework:<br>
+        Introduction → Methods &amp; Results → Discussion → MFM Prayer Style
+      </div>
+      <div class="okBox" id="topicOK"></div>
+      <div class="errorBox" id="topicError"></div>
+    </div>
+
+    <div class="sectionBox">
+      <div class="muted"><b>Verse Explainer</b></div>
+      <label>Book</label>
+      <select id="book"></select>
+      <label>Chapter</label>
+      <select id="chapter"></select>
+      <label>Verse</label>
+      <select id="verse"></select>
+      <div class="versebox" id="versePreview">Select a verse…</div>
+      <div class="toolbar">
+        <button id="explainVerseBtn" type="button">Explain Verse</button>
+      </div>
+    </div>
+
+    <div class="sectionBox">
+      <div class="muted"><b>Sermon Explainer (Sentence-by-sentence with Paragraph Context)</b></div>
+
+      <textarea id="sermonText" placeholder="Paste sermon paragraph(s) here. The app will split into sentences."></textarea>
+
+      <textarea id="sermonVerses" placeholder="Optional: paste Bible verses you already have (KJV), one or multiple. Example:
+John 3:16 - For God so loved the world...
+Romans 8:28 - And we know that all things work together...
+"></textarea>
+
+      <input id="sermonTitle" placeholder="Optional sermon title (for notes organizing)" />
+
+      <div class="toolbar">
+        <button id="analyzeSermonBtn" type="button">Load Sentences</button>
+        <button id="clearSermonBtn" type="button" class="secondary">Clear</button>
+      </div>
+
+      <div class="okBox" id="sermonOK"></div>
+      <div class="errorBox" id="sermonError"></div>
+      <div class="miniBox" id="sermonFlow"></div>
+
+      <ul class="stmtList" id="stmtList"></ul>
+    </div>
+  </section>
+
+  <section class="columns-wrap" id="columns">
+    <div class="col">
+      <h2>Revelation / Introduction</h2>
+      <div class="output" id="revelation"></div>
+    </div>
+
+    <div class="col">
+      <h2>Notes</h2>
+      <div class="notes-composer">
+        <textarea id="notes-textarea" placeholder="Write a note…"></textarea>
+        <button id="notes-add" type="button">Add</button>
+      </div>
+      <ol class="notes-list" id="notes-list"></ol>
+    </div>
+
+    <div class="col">
+      <h2>Application / Discussion</h2>
+      <div class="output" id="application"></div>
+    </div>
+
+    <div class="col">
+      <h2>Background / Case Studies</h2>
+      <div class="output" id="background"></div>
+    </div>
+
+    <div class="col">
+      <h2>Prophetic Declaration / MFM Prayer</h2>
+      <div class="output" id="prophetic"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  window.addEventListener('error', (e)=>{
+    const msg = `JS Error: ${e.message}\n${e.filename}:${e.lineno}:${e.colno}`;
+    const box = document.getElementById('sermonError');
+    if (box){ box.style.display='block'; box.textContent = msg; }
+  });
+
+  const $ = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const KEY = 'bibleExplainer.geminiKey';
+
+  function showError(msg){
+    const el = $('#sermonError');
+    const ok = $('#sermonOK');
+    if (ok){ ok.style.display='none'; ok.textContent=''; }
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+  function showOK(msg){
+    const el = $('#sermonOK');
+    const er = $('#sermonError');
+    if (er){ er.style.display='none'; er.textContent=''; }
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+  function showFlow(msg){
+    const el = $('#sermonFlow');
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+  function showTopicError(msg){
+    const el = $('#topicError');
+    const ok = $('#topicOK');
+    if (ok){ ok.style.display='none'; ok.textContent=''; }
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+  function showTopicOK(msg){
+    const el = $('#topicOK');
+    const er = $('#topicError');
+    if (er){ er.style.display='none'; er.textContent=''; }
+    if (!el) return;
+    el.style.display = msg ? 'block' : 'none';
+    el.textContent = msg || '';
+  }
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, m => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+    }[m]));
+  }
+  function setLoading(){
+    $('#revelation').innerHTML = $('#application').innerHTML = $('#background').innerHTML = $('#prophetic').innerHTML = 'Loading…';
+  }
+  function clearOutputs(){
+    $('#revelation').innerHTML = '';
+    $('#application').innerHTML = '';
+    $('#background').innerHTML = '';
+    $('#prophetic').innerHTML = '';
+  }
+  function cleanModelText(s){
+    if(!s) return '';
+    return s.replace(/^```[a-zA-Z]*\n?/,'').replace(/\n?```$/,'').trim();
+  }
+
+  function enableSelectionHighlight(container){
+    container.addEventListener('mouseup', ()=>{
+      const sel = window.getSelection();
+      if(!sel || sel.isCollapsed) return;
+
+      const range = sel.getRangeAt(0);
+      let n = range.commonAncestorContainer, ok=false;
+      while (n){ if (n===container){ ok=true; break; } n=n.parentNode; }
+      if (!ok) return;
+
+      try{
+        const mark = document.createElement('mark'); mark.className='hl';
+        range.surroundContents(mark);
+        mark.addEventListener('click', e=>{
+          e.stopPropagation();
+          const t = document.createTextNode(mark.textContent);
+          mark.replaceWith(t);
+        });
+        sel.removeAllRanges();
+      }catch{
+        const text = sel.toString();
+        if (!text) return;
+        const html = container.innerHTML;
+        container.innerHTML = html.replace(text, `<mark class="hl">${text}</mark>`);
+        container.querySelectorAll('mark.hl').forEach(m=>{
+          m.addEventListener('click', e=>{
+            e.stopPropagation();
+            const t = document.createTextNode(m.textContent);
+            m.replaceWith(t);
+          });
+        });
+        sel.removeAllRanges();
+      }
+    });
+  }
+  ['#revelation','#application','#background','#prophetic'].forEach(sel=>enableSelectionHighlight($(sel)));
+
+  if (localStorage.getItem(KEY)) $('#apikey').value = '•••••';
+
+  $('#savekey').addEventListener('click', ()=>{
+    const v = ($('#apikey').value || '').trim();
+    if (v.startsWith('AIza')) {
+      localStorage.setItem(KEY, v);
+      $('#apikey').value = '•••••';
+      alert('Gemini key saved ✅');
+    } else {
+      alert('Invalid Gemini API key');
+    }
+  });
+
+  $('#clearkey').addEventListener('click', ()=>{
+    localStorage.removeItem(KEY);
+    $('#apikey').value = '';
+    alert('Gemini key cleared ✅');
+  });
+
+  const CHAPTERS = {'Genesis':50,'Exodus':40,'Leviticus':27,'Numbers':36,'Deuteronomy':34,
+  'Joshua':24,'Judges':21,'Ruth':4,'1 Samuel':31,'2 Samuel':24,'1 Kings':22,'2 Kings':25,
+  '1 Chronicles':29,'2 Chronicles':36,'Ezra':10,'Nehemiah':13,'Esther':10,'Job':42,'Psalms':150,
+  'Proverbs':31,'Ecclesiastes':12,'Song of Solomon':8,'Isaiah':66,'Jeremiah':52,'Lamentations':5,
+  'Ezekiel':48,'Daniel':12,'Hosea':14,'Joel':3,'Amos':9,'Obadiah':1,'Jonah':4,'Micah':7,
+  'Nahum':3,'Habakkuk':3,'Zephaniah':3,'Haggai':2,'Zechariah':14,'Malachi':4,'Matthew':28,
+  'Mark':16,'Luke':24,'John':21,'Acts':28,'Romans':16,'1 Corinthians':16,'2 Corinthians':13,
+  'Galatians':6,'Ephesians':6,'Philippians':4,'Colossians':4,'1 Thessalonians':5,'2 Thessalonians':3,
+  '1 Timothy':6,'2 Timothy':4,'Titus':3,'Philemon':1,'Hebrews':13,'James':5,'1 Peter':5,
+  '2 Peter':3,'1 John':5,'2 John':1,'3 John':1,'Jude':1,'Revelation':22};
+
+  const bookSel=$('#book'), chapSel=$('#chapter'), verseSel=$('#verse');
+  Object.keys(CHAPTERS).forEach(b=>{
+    const o=document.createElement('option');o.value=o.textContent=b;bookSel.appendChild(o);
+  });
+
+  let verses=[];
+  function populateChapters(){
+    chapSel.innerHTML='';
+    for(let i=1;i<=CHAPTERS[bookSel.value];i++){
+      const o=document.createElement('option');o.value=o.textContent=i;chapSel.appendChild(o);
+    }
+  }
+  async function loadVerses(){
+    const book=bookSel.value, chap=chapSel.value;
+    const r=await fetch(`https://bible-api.com/${encodeURIComponent(book+' '+chap)}?translation=kjv`, {cache:'no-store'});
+    const j=await r.json();
+    verses=j.verses||[];
+    verseSel.innerHTML='';
+    verses.forEach(v=>{
+      const o=document.createElement('option');o.value=o.textContent=v.verse;verseSel.appendChild(o);
+    });
+    updatePreview();
+  }
+  function updatePreview(){
+    const v=parseInt(verseSel.value||'1',10);
+    const obj=verses.find(x=>x.verse===v);
+    $('#versePreview').innerHTML=obj?`<b>${bookSel.value} ${chapSel.value}:${v}</b><br>${obj.text}`:'No verse';
+  }
+  bookSel.onchange=()=>{populateChapters();loadVerses();};
+  chapSel.onchange=loadVerses;
+  verseSel.onchange=updatePreview;
+
+  bookSel.value='Genesis'; populateChapters(); chapSel.value='21'; loadVerses();
+
+  let notesDB = {};
+  let currentRef = null;
+
+  async function tryAutoLoadNotesJSON(){
+    try{
+      const res = await fetch('notes.json', {cache:'no-store'});
+      if(res.ok){
+        const txt = await res.text();
+        const cleaned = (txt.charCodeAt(0)===0xFEFF) ? txt.slice(1) : txt;
+        const data = JSON.parse(cleaned || '{}');
+        if (data && typeof data === 'object') notesDB = data;
+      }
+    }catch(_){}
+  }
+  tryAutoLoadNotesJSON();
+
+  $('#loadJsonBtn').addEventListener('click', ()=>$('#loadJsonInput').click());
+  $('#loadJsonInput').addEventListener('change', e=>{
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=evt=>{
+      try{
+        let raw = evt.target.result;
+        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+        const parsed = JSON.parse(raw || '{}');
+        if (!parsed || typeof parsed !== 'object') throw new Error('Top-level JSON must be an object');
+        notesDB = parsed;
+        alert('Notes file loaded ✅');
+        if (currentRef && notesDB[currentRef]) { paintOutputs(currentRef); renderNotes(currentRef); }
+      }catch(err){ alert('Invalid JSON file: ' + err.message); }
+    };
+    reader.readAsText(file);
+  });
+
+  function ensureRec(ref){
+    notesDB[ref] = notesDB[ref] || { revelation:'', application:'', background:'', prophetic:'', notes:[] };
+    if (!Array.isArray(notesDB[ref].notes)) notesDB[ref].notes=[];
+  }
+  function paintOutputs(ref){
+    const rec = notesDB[ref]; if(!rec) return;
+    $('#revelation').innerHTML = rec.revelation || '';
+    $('#application').innerHTML = rec.application || '';
+    $('#background').innerHTML  = rec.background  || '';
+    $('#prophetic').innerHTML   = rec.prophetic   || '';
+    renderNotes(ref);
+  }
+  function saveOutputs(ref){
+    ensureRec(ref);
+    notesDB[ref].revelation = $('#revelation').innerHTML;
+    notesDB[ref].application = $('#application').innerHTML;
+    notesDB[ref].background  = $('#background').innerHTML;
+    notesDB[ref].prophetic   = $('#prophetic').innerHTML;
+  }
+
+  $('#saveJsonBtn').addEventListener('click', ()=>{
+    if (currentRef) saveOutputs(currentRef);
+    const blob = new Blob([JSON.stringify(notesDB, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'notes.json'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function renderNotes(ref){
+    ensureRec(ref);
+    const list = $('#notes-list');
+    list.innerHTML = '';
+    notesDB[ref].notes.forEach((txt, i)=>{
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="note-num">${i+1}.</div>
+        <div class="note-text"></div>
+        <div class="note-actions">
+          <button class="btn-edit" type="button">✎</button>
+          <button class="btn-x" type="button">×</button>
+        </div>`;
+      li.querySelector('.note-text').textContent = txt;
+
+      const editBtn = li.querySelector('.btn-edit');
+      const delBtn = li.querySelector('.btn-x');
+
+      editBtn.onclick = ()=>{
+        const input = document.createElement('input'); input.className='edit-input'; input.value = txt;
+        li.querySelector('.note-text').replaceWith(input);
+        editBtn.style.display='none';
+        const saveBtn = document.createElement('button'); saveBtn.className='btn-save'; saveBtn.type='button'; saveBtn.textContent='Save';
+        li.querySelector('.note-actions').insertBefore(saveBtn, delBtn);
+        saveBtn.onclick = ()=>{
+          const v = input.value.trim();
+          notesDB[ref].notes[i] = v;
+          renderNotes(ref);
+        };
+      };
+      delBtn.onclick = ()=>{
+        notesDB[ref].notes.splice(i,1);
+        renderNotes(ref);
+      };
+
+      list.appendChild(li);
+    });
+  }
+
+  $('#notes-add').addEventListener('click', ()=>{
+    if (!currentRef) return alert('Select a topic, verse, or sermon sentence first.');
+    ensureRec(currentRef);
+    const v = ($('#notes-textarea').value || '').trim();
+    if(!v) return;
+    notesDB[currentRef].notes.push(v);
+    $('#notes-textarea').value='';
+    renderNotes(currentRef);
+  });
+
+  async function callGemini(promptText){
+    const key = localStorage.getItem(KEY);
+    if (!key) throw new Error('Missing Gemini API key (save it first).');
+    const body = { contents: [{ role: 'user', parts: [{ text: promptText }] }] };
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${key}`,
+      { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) }
+    );
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  function splitIntoSections(md){
+    const out = { Revelation:'', Application:'', Background:'', 'Prophetic Declaration':'' };
+    const cleaned = cleanModelText(md);
+
+    function normalizeSectionHTML(text){
+      return String(text || '')
+        .trim()
+        .replace(/\n{2,}/g,'<br><br>')
+        .replace(/\n/g,'<br>');
+    }
+
+    const lines = cleaned.split(/\r?\n/);
+    let current = null;
+
+    for (const rawLine of lines){
+      const line = rawLine.trim();
+
+      const headingMatch = /^(?:#{1,6}\s*|\*\*\s*)?(revelation|background|application|prophetic declaration|prophetic)(?:\s*\*\*)?\s*:?\s*$/i.exec(line);
+
+      if (headingMatch){
+        const h = headingMatch[1].toLowerCase();
+        if (h.startsWith('revelation')) current = 'Revelation';
+        else if (h.startsWith('application')) current = 'Application';
+        else if (h.startsWith('background')) current = 'Background';
+        else current = 'Prophetic Declaration';
+        continue;
+      }
+
+      if (current) out[current] += (rawLine + '\n');
+    }
+
+    const hasAnyStructuredSection = Object.values(out).some(v => v.trim());
+
+    if (!hasAnyStructuredSection){
+      out.Revelation = cleaned;
+    }
+
+    for (const k of Object.keys(out)){
+      out[k] = normalizeSectionHTML(out[k]);
+    }
+
+    return out;
+  }
+
+  function buildTopicPrompt(topic){
+  return `You are preparing a revelatory sermon on the topic: ${topic}.
+
+Your first task is NOT to write the sermon.
+Your first task is to build a REVELATION MAP internally.
+
+INTERNAL REVELATION MAP:
+1. State the ONE controlling revelation of the sermon in one sentence.
+2. State 2 or 3 supporting sub-revelations that all deepen the same controlling revelation.
+3. For each sub-revelation, choose ONE anchor Bible scene.
+4. Reject any anchor scene that opens a different sermon line.
+5. Prefer scenes that embody the revelation, even if the verse does not explicitly use the topic word.
+
+IMPORTANT:
+Do NOT search only for verses that mention ${topic}.
+Search for Bible scenes that reveal the spiritual mechanics of ${topic}.
+
+For example:
+- if the revelation is about divine association changing human status,
+  you may use scenes where someone carries God, carries covenant, carries presence, or is honored because of divine association.
+- if the revelation is about divine empowerment,
+  you may use scenes where weakness becomes capacity because of God's operation.
+
+UNPOPULAR BUT VALID CONNECTION RULE:
+You are allowed to use less obvious scriptures if:
+1. the scene strongly embodies the controlling revelation,
+2. the connection can be clearly explained,
+3. it strengthens the same sermon spine rather than opening a new sermon.
+
+CONTEXT RULE:
+Where necessary, briefly explain the original historical, social, covenantal, or cultural setting of the scene so the revelation becomes clearer.
+
+FLOW RULE:
+The sermon must feel like ONE sermon, not multiple mini-sermons.
+Every section must move the same controlling revelation forward.
+
+For each movement of the sermon, use this order:
+1. common understanding
+2. why it is incomplete
+3. anchor scene
+4. contextual light
+5. hidden revelation
+6. direct landing on the listener
+
+==================================================
+COMMON UNDERSTANDING EXPANSION RULE (NEW)
+==================================================
+
+Before correcting the commonly known understanding of the topic, you must first EXPAND IT BRIEFLY using scripture by revelatory function.
+
+This means:
+
+1. When you mention the common understanding of ${topic}, do NOT state it in one sentence and move on.
+2. First, validate it.
+3. Then briefly open one scripture scene that genuinely supports that common understanding.
+4. Narrate that scene with the same preacherly richness used in the later movements.
+5. Let the audience settle into agreement with that familiar truth.
+6. Only AFTER that should you say:
+   - "That is true, but that is not the full picture"
+   - or equivalent tension language.
+
+IMPORTANT:
+The "commonly known" part must itself be preached, not merely stated.
+
+Example pattern:
+- Common belief
+- Scripture scene that supports it
+- Brief contextual expansion
+- Why that common belief is true
+- Then tension: "But that is not all..."
+
+Do NOT rush past the first layer.
+
+If the topic is Grace, and the common understanding is "unmerited favor," then do not merely define it.
+Show a Bible scene where favor is clearly operating.
+Explain why that scene supports the common understanding.
+Then move deeper.
+
+This first-level expansion must be shorter than the later revelatory movements, but it must still feel alive, scriptural, and preacherly.
+
+CRITICAL:
+The first common layer must be written with the same sermonic richness as movements 1 to 3.
+Do not let the opening feel flatter than the rest of the sermon.
+
+ADDITIONAL FLOW ENFORCEMENT:
+
+For EVERY "common understanding" in the sermon:
+
+You MUST follow this order:
+
+1. State the common belief
+2. Immediately support it with ONE short scripture scene (not just a verse)
+3. Briefly explain why that belief is correct using that scene
+4. THEN introduce tension:
+   - "That is true, but that is not the full picture"
+
+Do NOT skip step 2.
+
+Do NOT jump directly from statement → correction.
+
+The audience must first AGREE before they are challenged.
+
+OUTPUT ONLY UNDER THESE HEADINGS:
+
+## Revelation Flow
+Write one continuous sermon with 3 movements maximum.
+Do NOT make unrelated dimensions.
+Do NOT create independent teachings.
+Every movement must connect tightly to the controlling revelation.
+Application must be embedded inside the flow, not separated.
+
+## Prophetic Declaration
+Give 12 strong MFM-style prayer points flowing directly from the sermon’s controlling revelation.
+Each must feel connected to what was preached.
+
+FINAL RULE:
+If one section feels like it could stand alone as a different sermon, remove or rewrite it until it supports the same spine.`;
+}
+
+function buildTopicSupportPrompt(topic, draftText){
+  return `You are given an already-written Bible topic study draft.
+
+TOPIC: ${topic}
+
+VERY IMPORTANT:
+Do NOT rewrite the draft.
+Do NOT reduce its sweetness, depth, tone, or preaching richness.
+Do NOT narrow the topic.
+Do NOT replace the existing ideas with verse-driven wording.
+
+Your only job is to PRESERVE the original wording as much as possible and ADD scriptural backing under each major point.
+
+For every major point, add a short block called:
+
+**Scriptural Backing:**
+- KJV reference
+- short KJV quotation
+- one-line explanation of how it supports that exact point
+
+Rules:
+- Preserve the original structure and wording
+- Only make minimal edits where necessary for flow
+- Use KJV only
+- Keep the explanation dominant and let scripture support it
+- Do not turn the whole topic into salvation unless the topic is salvation
+- If the topic is Grace, support the different dimensions of grace broadly, not just saving grace
+- Keep the exact Markdown headings:
+## Revelation
+## Background
+## Application
+## Prophetic Declaration
+
+For the prayer section:
+After each prayer point add:
+**Bible Anchor:** reference + short KJV quotation
+
+Here is the draft to preserve and enrich with scripture:
+
+${draftText}`;
+}
+
+  function refKeyVerse(book, chap, verse){ return `verse::${book}_${chap}_${verse}`; }
+  function refKeyTopic(topic){ return `topic::${topic.toLowerCase()}`; }
+
+  $('#analyzeTopicBtn').addEventListener('click', async ()=>{
+  showTopicError('');
+  const topic = ($('#topicInput').value || '').trim();
+  if (!topic) return showTopicError('Enter a topic first.');
+
+  const ref = refKeyTopic(topic);
+  currentRef = ref;
+
+  if (notesDB[ref]) {
+    paintOutputs(ref);
+    showTopicOK(`Loaded saved topic study for "${topic}" ✅`);
+    return;
+  }
+
+  setLoading();
+
+  try{
+    // STEP 1: generate the deep explanation first
+    const draftPrompt = buildTopicPrompt(topic);
+    const draftRaw = await callGemini(draftPrompt);
+
+    // STEP 2: preserve that explanation and only add scriptural support
+    const supportPrompt = buildTopicSupportPrompt(topic, draftRaw);
+    const finalRaw = await callGemini(supportPrompt);
+
+    const s = splitIntoSections(finalRaw);
+
+    notesDB[ref] = {
+      revelation: s.Revelation || finalRaw.replace(/\n/g,'<br>'),
+      application: s.Application || '',
+      background: s.Background || '',
+      prophetic: s['Prophetic Declaration'] || '',
+      notes: []
+    };
+
+    paintOutputs(ref);
+    showTopicOK(`Topic study for "${topic}" generated ✅`);
+  }catch(e){
+    clearOutputs();
+    showTopicError(e.message || 'Failed to generate topic study.');
+  }
+});
+
+  $('#clearTopicBtn').addEventListener('click', ()=>{
+    $('#topicInput').value = '';
+    showTopicError('');
+    showTopicOK('');
+  });
+
+  $('#explainVerseBtn').addEventListener('click', async ()=>{
+    showError('');
+    const book=bookSel.value, chapter=chapSel.value, verse=verseSel.value;
+    const obj=verses.find(x=>x.verse==verse); if(!obj) return;
+    const verseText = obj.text;
+    const ctx = verses.filter(v=>Math.abs(v.verse - verse) <= 2).map(v => `${book} ${chapter}:${v.verse} ${v.text}`).join('\n');
+
+    const ref = refKeyVerse(book, chapter, verse);
+    currentRef = ref;
+
+    if (notesDB[ref]) { paintOutputs(ref); return; }
+
+    setLoading();
+    try{
+      const prompt = buildVersePrompt({book, chapter, verse, verseText, contextText: ctx});
+      const raw = await callGemini(prompt);
+      const s = splitIntoSections(raw);
+      notesDB[ref] = { revelation:s.Revelation||'', background:s.Background||'', application:s.Application||'', prophetic:s['Prophetic Declaration']||'', notes:[] };
+      paintOutputs(ref);
+    }catch(e){
+      $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
+      $('#application').innerHTML = '';
+      $('#background').innerHTML = '';
+      $('#prophetic').innerHTML = '';
+    }
+  });
+
+  let sermonSentences = [];
+  let sermonParas = [];
+  let sentenceToPara = [];
+  let currentSermonId = null;
+  let sermonSummary = '';
+
+  function hashLite(str){
+    let h = 2166136261;
+    for (let i=0;i<str.length;i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36);
+  }
+
+  function splitIntoSentencesWithParagraphs(text){
+    const cleaned = String(text || '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    const paras = cleaned.split(/\n\s*\n+/).map(s=>s.trim()).filter(Boolean);
+    sermonParas = paras.length ? paras : [cleaned.replace(/\s+/g,' ').trim()];
+
+    const sentences = [];
+    sentenceToPara = [];
+
+    for (let pIndex = 0; pIndex < sermonParas.length; pIndex++){
+      const p = sermonParas[pIndex].replace(/\s+/g,' ').trim();
+      if (!p) continue;
+      const marked = p.replace(/([.!?])\s+/g, '$1|||');
+      const parts = marked.split('|||').map(s=>s.trim()).filter(Boolean);
+
+      for (const s of parts){
+        if (s.length < 6) continue;
+        sentences.push(s);
+        sentenceToPara.push(pIndex);
+      }
+    }
+
+    if (!sentences.length){
+      const lines = cleaned.split('\n').map(s=>s.trim()).filter(Boolean);
+      for (const l of lines){
+        sentences.push(l);
+        sentenceToPara.push(0);
+      }
+      sermonParas = [cleaned.replace(/\s+/g,' ').trim()];
+    }
+
+    return sentences.slice(0, 200);
+  }
+
+  async function buildSermonSummary(fullText, title){
+    const prompt = `You are an assistant pastor.
+Summarize this sermon in 7-10 bullet points, preserving the preacher's logical flow and emphasis.
+No verse explanations here. Just flow + themes.
+Keep it short and clear.
+
+Title: ${title || '(none)'}
+Sermon:
+${fullText}`;
+    const raw = await callGemini(prompt);
+    return cleanModelText(raw).slice(0, 2500);
+  }
+
+  function buildSermonSentencePrompt({sentence, sermonVersesText, sermonTitle, paragraphText, sermonSummary, contextWindow}){
+    return `Explain the following SERMON SENTENCE in Mountain of fire Miracle ministry style.
+Sermon Title (if any): "${sermonTitle || ''}"
+
+TARGET SENTENCE (explain this, but do NOT lose the sermon context):
+"${sentence}"
+
+PARAGRAPH WHERE IT CAME FROM (use this to keep meaning and flow):
+"${paragraphText || ''}"
+
+SERMON FLOW / SUMMARY (use this to stay consistent with the preacher's direction):
+"${sermonSummary || ''}"
+
+You are to explain Bible verses in the style of Mountain of fire Miracle ministry.
+Focus on revelation, not commentary. Use short, weighty, prophetic sentences.
+Make each line carry spiritual substance, not filler.
+Break content into clear sections with these exact Markdown headings:
+## Revelation
+## Background
+## Application
+## Prophetic Declaration
+Under 'Revelation', emphasize mysteries hidden in the sentence. Use Hebrew/Greek only if it adds weight.
+Link to other bible verse KJV that aligns with your revelation.
+When you link to other bible verses, output the bible verse in KJV.
+Never repeat phrases unnecessarily.
+Every paragraph must sound like a preacher unveiling mysteries of the Spirit.
+End with a powerful one-sentence prophetic prayer starting with 'Prayer:'.
+
+VERY IMPORTANT (NEW RULE YOU MUST OBEY):
+Do NOT merely list verses. You must INCORPORATE scripture into the explanation itself.
+That means: when you make any spiritual claim, anchor it with at least one KJV verse INSIDE the section
+(by quoting the verse text and then applying it to the sermon sentence).
+Use the user-provided verses FIRST when they fit. If none fits, choose the best KJV verse(s) yourself.
+
+IMPORTANT ADDITION (keep all other rules):
+At the END of EACH section (Revelation, Background, Application, Prophetic Declaration),
+add a small subsection titled:
+**KJV Verses**
+Then list ONLY the verses you actually used in that section (reference + full KJV text).
+Do NOT add unused verses.
+
+User-Provided Verses (optional, KJV): ${sermonVersesText || '(none provided)'}
+Context (surrounding sermon sentences): ${contextWindow || '(none)'}`;
+  }
+
+  function renderSentenceList(){
+    const ul = $('#stmtList');
+    ul.innerHTML = '';
+    sermonSentences.forEach((s, idx)=>{
+      const li = document.createElement('li');
+      li.dataset.idx = String(idx);
+      const preview = s.length > 160 ? s.slice(0,160)+'…' : s;
+      li.innerHTML = `<div><span class="badge">#${idx+1}</span> ${escapeHTML(preview)}</div>`;
+      li.addEventListener('click', ()=>selectSentence(idx));
+      ul.appendChild(li);
+    });
+  }
+
+  function setActive(idx){
+    $$('#stmtList li').forEach(li=>li.classList.remove('active'));
+    const li = $(`#stmtList li[data-idx="${idx}"]`);
+    if (li) li.classList.add('active');
+  }
+
+  function refKeySermon(sermonId, idx){ return `sermon::${sermonId}::${idx}`; }
+
+  async function selectSentence(idx){
+    showError('');
+    setActive(idx);
+
+    const sermonTitle = ($('#sermonTitle').value || '').trim();
+    const versesText = ($('#sermonVerses').value || '').trim();
+    const sentence = sermonSentences[idx];
+
+    const ref = refKeySermon(currentSermonId, idx);
+    currentRef = ref;
+
+    if (notesDB[ref]) { paintOutputs(ref); return; }
+
+    const left = Math.max(0, idx-3);
+    const right = Math.min(sermonSentences.length-1, idx+3);
+    const ctx = sermonSentences.slice(left, right+1).map((t,i)=>`#${left+i+1}: ${t}`).join('\n');
+
+    const pIndex = sentenceToPara[idx] ?? 0;
+    const paragraphText = sermonParas[pIndex] || '';
+
+    setLoading();
+    try{
+      const prompt = buildSermonSentencePrompt({
+        sentence,
+        sermonVersesText: versesText,
+        sermonTitle,
+        paragraphText,
+        sermonSummary,
+        contextWindow: ctx
+      });
+      const raw = await callGemini(prompt);
+      const s = splitIntoSections(raw);
+
+      notesDB[ref] = {
+        revelation: s.Revelation || '',
+        application: s.Application || '',
+        background:  s.Background || '',
+        prophetic:   s['Prophetic Declaration'] || '',
+        notes: []
+      };
+      paintOutputs(ref);
+    }catch(e){
+      $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
+      $('#application').innerHTML = '';
+      $('#background').innerHTML = '';
+      $('#prophetic').innerHTML = '';
+    }
+  }
+
+  $('#analyzeSermonBtn').addEventListener('click', async ()=>{
+    showError('');
+    showFlow('');
+    clearOutputs();
+    $('#notes-list').innerHTML = '';
+    currentRef = null;
+
+    const text = ($('#sermonText').value || '').trim();
+    if (!text) return showError('Paste sermon text first.');
+
+    sermonSentences = splitIntoSentencesWithParagraphs(text);
+    if (!sermonSentences.length) return showError('Could not detect sentences. Add punctuation or line breaks.');
+
+    const title = ($('#sermonTitle').value || '').trim();
+    currentSermonId = hashLite((title + '\n' + text).slice(0, 20000));
+
+    renderSentenceList();
+    showOK(`Loaded ${sermonSentences.length} sentences ✅ Building sermon flow context...`);
+
+    try{
+      sermonSummary = await buildSermonSummary(text, title);
+      showFlow('Sermon Flow Summary (internal context used for each sentence):\n' + sermonSummary);
+      showOK(`Loaded ${sermonSentences.length} sentences ✅ Now click any sentence to explain.`);
+    }catch(e){
+      sermonSummary = '';
+      showOK(`Loaded ${sermonSentences.length} sentences ✅ (Flow summary failed, still usable)`);
+    }
+  });
+
+  $('#clearSermonBtn').addEventListener('click', ()=>{
+    $('#sermonText').value = '';
+    $('#sermonVerses').value = '';
+    $('#sermonTitle').value = '';
+    sermonSentences = [];
+    sermonParas = [];
+    sentenceToPara = [];
+    currentSermonId = null;
+    sermonSummary = '';
+    $('#stmtList').innerHTML = '';
+    showError('');
+    showOK('');
+    showFlow('');
+    clearOutputs();
+    currentRef = null;
+    $('#notes-list').innerHTML = '';
+  });
+
+  console.log('App JS loaded ✅');
+})();
+</script>
+</body>
+</html>
