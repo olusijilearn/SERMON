@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bible Topic Study + Sermon Explainer • Gemini 2.5</title>
+  <title>Bible Clarity Study (Plain English) + Sermon Explainer • Gemini 2.5</title>
   <style>
     :root{
       --bg:#f7f7f8; --text:#1e1e1e; --card:#fff; --border:#e0e0e0;
@@ -125,7 +125,7 @@
 <body>
 <div class="app">
   <section class="panel">
-    <h2>Bible Topic Study + Sermon Explainer</h2>
+    <h2>Bible Clarity Study (Plain English)</h2>
 
     <input id="apikey" placeholder="Paste Gemini API key (AIza...)" />
     <div class="toolbar">
@@ -141,15 +141,15 @@
     <div class="muted">Tip: run a local server to auto-load notes.json at start.</div>
 
     <div class="sectionBox">
-      <div class="muted"><b>Topic Study (Framework Mode)</b></div>
-      <input id="topicInput" placeholder="Enter Topic e.g. Grace, Faith, Mercy, Holiness" />
+      <div class="muted"><b>Topic Clarity Study</b></div>
+      <input id="topicInput" placeholder="Enter topic or question e.g. Grace, Prayer, Who are the ye in John 14:13?" />
       <div class="toolbar">
-        <button id="analyzeTopicBtn" type="button">Study Topic</button>
+        <button id="analyzeTopicBtn" type="button">Study for Clarity</button>
         <button id="clearTopicBtn" type="button" class="secondary">Clear</button>
       </div>
       <div class="tipBox">
-        Uses your study framework:<br>
-        Introduction → Methods &amp; Results → Discussion → MFM Prayer Style
+        Uses your current movement-based clarity flow:<br>
+        Revelation Flow → Recall Trainer → Prophetic Declaration<br><br><b>Plain-English rule:</b> explain like you are teaching an intelligent church member, not writing academic theology.
       </div>
       <div class="okBox" id="topicOK"></div>
       <div class="errorBox" id="topicError"></div>
@@ -215,16 +215,6 @@ Romans 8:28 - And we know that all things work together...
     </div>
 
     <div class="col">
-      <h2>Application / Discussion</h2>
-      <div class="output" id="application"></div>
-    </div>
-
-    <div class="col">
-      <h2>Background / Case Studies</h2>
-      <div class="output" id="background"></div>
-    </div>
-
-    <div class="col">
       <h2>Prophetic Declaration / MFM Prayer</h2>
       <div class="output" id="prophetic"></div>
     </div>
@@ -287,13 +277,11 @@ Romans 8:28 - And we know that all things work together...
     }[m]));
   }
   function setLoading(){
-    $('#revelation').innerHTML = $('#recall').innerHTML = $('#application').innerHTML = $('#background').innerHTML = $('#prophetic').innerHTML = 'Loading…';
+    $('#revelation').innerHTML = $('#recall').innerHTML = $('#prophetic').innerHTML = 'Loading…';
   }
   function clearOutputs(){
     $('#revelation').innerHTML = '';
     $('#recall').innerHTML = '';
-    $('#application').innerHTML = '';
-    $('#background').innerHTML = '';
     $('#prophetic').innerHTML = '';
   }
   function cleanModelText(s){
@@ -336,7 +324,7 @@ Romans 8:28 - And we know that all things work together...
       }
     });
   }
-  ['#revelation','#recall','#application','#background','#prophetic'].forEach(sel=>enableSelectionHighlight($(sel)));
+  ['#revelation','#recall','#prophetic'].forEach(sel=>enableSelectionHighlight($(sel)));
 
   if (localStorage.getItem(KEY)) $('#apikey').value = '•••••';
 
@@ -437,25 +425,21 @@ Romans 8:28 - And we know that all things work together...
   });
 
   function ensureRec(ref){
-    notesDB[ref] = notesDB[ref] || { revelation:'', recall:'', application:'', background:'', prophetic:'', notes:[] };
+    notesDB[ref] = notesDB[ref] || { revelation:'', recall:'', prophetic:'', notes:[] };
     if (!Array.isArray(notesDB[ref].notes)) notesDB[ref].notes=[];
   }
   function paintOutputs(ref){
     const rec = notesDB[ref]; if(!rec) return;
     $('#revelation').innerHTML = rec.revelation || '';
-    $('#recall').innerHTML = rec.recall || '';
-    $('#application').innerHTML = rec.application || '';
-    $('#background').innerHTML  = rec.background  || '';
-    $('#prophetic').innerHTML   = rec.prophetic   || '';
+    $('#recall').innerHTML     = rec.recall || '';
+    $('#prophetic').innerHTML  = rec.prophetic || '';
     renderNotes(ref);
   }
   function saveOutputs(ref){
     ensureRec(ref);
     notesDB[ref].revelation = $('#revelation').innerHTML;
-    notesDB[ref].recall = $('#recall').innerHTML;
-    notesDB[ref].application = $('#application').innerHTML;
-    notesDB[ref].background  = $('#background').innerHTML;
-    notesDB[ref].prophetic   = $('#prophetic').innerHTML;
+    notesDB[ref].recall     = $('#recall').innerHTML;
+    notesDB[ref].prophetic  = $('#prophetic').innerHTML;
   }
 
   $('#saveJsonBtn').addEventListener('click', ()=>{
@@ -591,105 +575,6 @@ RULES:
     return out;
   }
 
-  function splitIntoSections(md){
-    const out = { Revelation:'', Application:'', Background:'', 'Prophetic Declaration':'' };
-    const cleaned = cleanModelText(md);
-
-    const lines = cleaned.split(/\r?\n/);
-    let current = null;
-    for (const line of lines){
-      const m = /^##\s*(.+?)\s*$/.exec(line);
-      if (m){
-        const h = m[1].trim().toLowerCase();
-        if (h.startsWith('revelation')) current = 'Revelation';
-        else if (h.startsWith('application')) current = 'Application';
-        else if (h.startsWith('background')) current = 'Background';
-        else if (h.startsWith('prophetic')) current = 'Prophetic Declaration';
-        else current = null;
-        continue;
-      }
-      if (current) out[current] += (line + '\n');
-    }
-
-    for (const k of Object.keys(out)){
-      out[k] = out[k].trim()
-        .replace(/\n{2,}/g,'<br><br>')
-        .replace(/\n/g,'<br>');
-    }
-    return out;
-  }
-
-  function buildTopicPrompt(topic){
-    return `You are to teach a Bible study topic in a deep revelatory preaching style similar to Mountain of Fire and Miracles Ministries.
-
-TOPIC: ${topic}
-
-Follow the output structure exactly using these exact Markdown headings only:
-## Revelation
-## Background
-## Application
-## Prophetic Declaration
-
-Inside each heading, organize the content exactly as follows:
-
-## Revelation
-I. INTRODUCTION (The Framework)
-1. Definition: What is ${topic}? Give both literal and spiritual baseline.
-2. The Deep Dive: Give the deeper meaning, biblical insight, and if useful the etymology of ${topic}.
-3. The Risk Assessment: Explain the dangers, losses, and spiritual consequences of lacking ${topic} in one's life.
-4. The Rationale: Explain why ${topic} is essential to study and why the listener must become a partaker.
-
-## Background
-II. METHODS & RESULTS (The Case Studies)
-1. Data Selection: Give multiple Bible examples of people who experienced ${topic}.
-2. Subject Background: For each person, explain who they were, their environment, and how they encountered ${topic}.
-3. Observation: Explain the specific outcomes or changes in their lives once ${topic} was introduced.
-4. Data Analysis: Extract lessons, patterns, and spiritual principles from their experiences.
-
-## Application
-III. DISCUSSION (The Synthesis)
-A. Revelation: State what God himself says about ${topic} using KJV verses quoted and explained.
-B. Real life non-biblical stories: Give believable real-life style illustrations or testimony-like examples people may share concerning ${topic}. Do not sound fictional or childish.
-C. Practical response: Explain how a believer should walk in ${topic} today.
-
-## Prophetic Declaration
-Give 12 strong MFM prayer points on ${topic}.
-- Make them aggressive, prayer-mountain style, and first-person.
-- Make them spiritually weighty, practical, and scriptural in tone.
-- Each prayer point should stand on its own line.
-- End with: In Jesus' name Amen.
-
-Rules:
-- Use KJV only when quoting scripture.
-- Do not write shallow devotional filler.
-- Sound like a preacher unveiling spiritual mysteries.
-- Be clear, deep, and structured.
-- Avoid repetition.
-- Do not output any heading outside the four required Markdown headings.`;
-  }
-
-  function buildVersePrompt({book, chapter, verse, verseText, contextText}){
-    return `Explain ${book} ${chapter}:${verse} (KJV: "${verseText}") in Mountain of fire Miracle ministry style.
-You are to explain Bible verses in the style of Mountain of fire Miracle ministry.
-Focus on revelation, not commentary. Use short, weighty, prophetic sentences.
-Make each line carry spiritual substance, not filler.
-Break content into clear sections with these exact Markdown headings:
-## Revelation
-## Background
-## Application
-## Prophetic Declaration
-Under 'Revelation', emphasize mysteries hidden in the verse. Use Hebrew/Greek only if it adds weight.
-Link to other bible verse KJV that aligns with your revelation.
-When you link to other bible verses, output the bible verse in KJV.
-Never repeat phrases unnecessarily.
-Every paragraph must sound like a preacher unveiling mysteries of the Spirit.
-End with a powerful one-sentence prophetic prayer starting with 'Prayer:'.
-Context (nearby verses): ${contextText}`;
-  }
-
-  function refKeyVerse(book, chap, verse){ return `verse::${book}_${chap}_${verse}`; }
-  function refKeyTopic(topic){ return `topic::${topic.toLowerCase()}`; }
-
   async function generateRecallTrainer(topicLike, sourceText){
     try{
       const raw = await callGemini(buildRecallTrainerPrompt(topicLike, sourceText));
@@ -699,41 +584,232 @@ Context (nearby verses): ${contextText}`;
     }
   }
 
+  function splitIntoSections(md){
+    const out = { Revelation:'', 'Prophetic Declaration':'' };
+    const cleaned = cleanModelText(md);
+
+    function normalizeSectionHTML(text){
+      return String(text || '')
+        .trim()
+        .replace(/\n{2,}/g,'<br><br>')
+        .replace(/\n/g,'<br>');
+    }
+
+    const lines = cleaned.split(/\r?\n/);
+    let current = null;
+
+    for (const rawLine of lines){
+      const line = rawLine.trim();
+      const headingMatch = /^(?:#{1,6}\s*|\*\*\s*)?(revelation|prophetic declaration|prophetic)(?:\s*\*\*)?\s*:?\s*$/i.exec(line);
+
+      if (headingMatch){
+        const h = headingMatch[1].toLowerCase();
+        if (h.startsWith('revelation')) current = 'Revelation';
+        else current = 'Prophetic Declaration';
+        continue;
+      }
+
+      if (current) out[current] += (rawLine + '\n');
+    }
+
+    const hasAnyStructuredSection = Object.values(out).some(v => v.trim());
+
+    if (!hasAnyStructuredSection){
+      out.Revelation = cleaned;
+    }
+
+    for (const k of Object.keys(out)){
+      out[k] = normalizeSectionHTML(out[k]);
+    }
+
+    return out;
+  }
+
+  function buildTopicPrompt(topic){
+  return `You are preparing a Bible clarity study in SIMPLE, NATURAL, PLAIN ENGLISH on this topic or question: ${topic}.
+
+The user does NOT want a contrast sermon.
+Do NOT frame the teaching like this:
+- many people think...
+- that is correct, but not complete
+- this is incomplete
+- this is only the ground floor
+- but that is not all
+- we have misunderstood this
+unless it is absolutely necessary for accuracy.
+
+Instead, assume the user wants direct clarity.
+
+MOST IMPORTANT LANGUAGE RULE:
+Write in layman-friendly English.
+Avoid abstract, technical, or overly dramatic phrases such as:
+- divine operational system
+- covenantal architecture
+- existential insufficiency
+- revelatory construct
+- theological mechanics
+- ontological reality
+- business plan of the Kingdom
+- invasive force in the universe
+
+Prefer simple language like:
+- God helps
+- God provides
+- Jesus was speaking to...
+- In that time...
+- This meant...
+- The point is...
+- So for us today...
+
+If a sentence can be made simpler without losing truth, make it simpler.
+
+GOAL:
+Take the topic or question and explain it clearly, deeply, and scripturally in 3 movements maximum.
+
+IF THE INPUT IS A DIRECT BIBLE QUESTION:
+For example:
+- "Who are the ye in John 14:13?"
+- "What did Jesus mean by this?"
+- "Who was he speaking to?"
+then answer the question directly from:
+1. the immediate verse context
+2. the audience and cultural setting at that time
+3. the wider biblical meaning if needed
+4. what it means for believers today
+
+CULTURAL CLARITY RULE:
+Where relevant, explain plainly:
+- who was being addressed
+- what was normal in that time
+- what the original hearers would likely understand
+- why that matters for the meaning of the verse
+
+SCRIPTURE RULE:
+Use scripture to explain the point clearly.
+Do NOT hunt for dramatic or obscure connections unless they truly help understanding.
+Clarity is more important than surprise.
+
+FLOW RULE:
+Build one coherent teaching, not multiple mini-sermons.
+
+FOR EACH MOVEMENT:
+1. State the question or issue clearly
+2. Open the main scripture or passage
+3. Explain the setting in simple words where needed
+4. Walk through the meaning carefully
+5. State the takeaway in plain English
+6. Add scriptural backing underneath
+
+TONE:
+- clear
+- warm
+- pastor-like
+- understandable
+- scripture-rich
+- direct
+- not academic
+- not overly poetic
+- not contrast-driven
+
+OUTPUT ONLY UNDER THESE HEADINGS:
+
+## Revelation
+Write one continuous clarity study with 3 movements maximum.
+It should answer the topic directly in plain English, with explanation and scriptures.
+
+## Prophetic Declaration
+Give 12 strong but understandable MFM-style prayer points flowing from the clarified teaching.
+Keep the wording simple enough to pray out loud naturally.
+
+FINAL RULE:
+If a normal church member cannot easily understand a sentence on first reading, rewrite it more simply.`;
+}
+
+function buildTopicSupportPrompt(topic, draftText){
+  return `You are given an already-written Bible clarity study draft.
+
+TOPIC OR QUESTION: ${topic}
+
+Your job is to PRESERVE the structure and meaning, but make the English simpler, clearer, and more natural.
+
+VERY IMPORTANT:
+- Remove unnecessary comparison language
+- Remove lines like "many people think... but that is not the full picture" unless absolutely necessary
+- Replace abstract or technical wording with plain English
+- Keep the explanation rich, but easy to understand
+- Do not make it sound academic
+- Do not make it sound like a textbook
+- Do not make it sound artificially dramatic
+
+For every major point, add a short block called:
+
+**Scriptural Backing:**
+- KJV reference
+- short KJV quotation
+- one-line explanation in simple English
+
+Rules:
+- Preserve the original structure and flow
+- Use KJV only
+- Keep the exact Markdown headings:
+## Revelation
+## Prophetic Declaration
+- For the prayer section, after each prayer point add:
+**Bible Anchor:** reference + short KJV quotation
+
+FINAL LANGUAGE RULE:
+Choose the simplest clear wording that still preserves the meaning.
+
+Here is the draft to simplify and enrich with scripture:
+
+${draftText}`;
+}
+
+  function refKeyVerse(book, chap, verse){ return `verse::${book}_${chap}_${verse}`; }
+  function refKeyTopic(topic){ return `topic::${topic.toLowerCase()}`; }
+
   $('#analyzeTopicBtn').addEventListener('click', async ()=>{
-    showTopicError('');
-    const topic = ($('#topicInput').value || '').trim();
-    if (!topic) return showTopicError('Enter a topic first.');
+  showTopicError('');
+  const topic = ($('#topicInput').value || '').trim();
+  if (!topic) return showTopicError('Enter a topic first.');
 
-    const ref = refKeyTopic(topic);
-    currentRef = ref;
+  const ref = refKeyTopic(topic);
+  currentRef = ref;
 
-    if (notesDB[ref]) {
-      paintOutputs(ref);
-      showTopicOK(`Loaded saved topic study for "${topic}" ✅`);
-      return;
-    }
+  if (notesDB[ref]) {
+    paintOutputs(ref);
+    showTopicOK(`Loaded saved topic study for "${topic}" ✅`);
+    return;
+  }
 
-    setLoading();
-    try{
-      const prompt = buildTopicPrompt(topic);
-      const raw = await callGemini(prompt);
-      const s = splitIntoSections(raw);
-      const recall = await generateRecallTrainer(topic, raw);
-      notesDB[ref] = {
-        revelation: s.Revelation || '',
-        recall: recall || '',
-        application: s.Application || '',
-        background: s.Background || '',
-        prophetic: s['Prophetic Declaration'] || '',
-        notes: []
-      };
-      paintOutputs(ref);
-      showTopicOK(`Topic study for "${topic}" generated ✅`);
-    }catch(e){
-      clearOutputs();
-      showTopicError(e.message || 'Failed to generate topic study.');
-    }
-  });
+  setLoading();
+
+  try{
+    // STEP 1: generate the deep explanation first
+    const draftPrompt = buildTopicPrompt(topic);
+    const draftRaw = await callGemini(draftPrompt);
+
+    // STEP 2: preserve that explanation and only add scriptural support
+    const supportPrompt = buildTopicSupportPrompt(topic, draftRaw);
+    const finalRaw = await callGemini(supportPrompt);
+
+    const s = splitIntoSections(finalRaw);
+    const recall = await generateRecallTrainer(topic, finalRaw);
+
+    notesDB[ref] = {
+      revelation: s.Revelation || finalRaw.replace(/\n/g,'<br>'),
+      recall: recall || '',
+      prophetic: s['Prophetic Declaration'] || '',
+      notes: []
+    };
+
+    paintOutputs(ref);
+    showTopicOK(`Topic study for "${topic}" generated ✅`);
+  }catch(e){
+    clearOutputs();
+    showTopicError(e.message || 'Failed to generate topic study.');
+  }
+});
 
   $('#clearTopicBtn').addEventListener('click', ()=>{
     $('#topicInput').value = '';
@@ -759,13 +835,11 @@ Context (nearby verses): ${contextText}`;
       const raw = await callGemini(prompt);
       const s = splitIntoSections(raw);
       const recall = await generateRecallTrainer(`${book} ${chapter}:${verse}`, raw);
-      notesDB[ref] = { revelation:s.Revelation||'', recall:recall||'', background:s.Background||'', application:s.Application||'', prophetic:s['Prophetic Declaration']||'', notes:[] };
+      notesDB[ref] = { revelation:s.Revelation||'', recall:recall||'', prophetic:s['Prophetic Declaration']||'', notes:[] };
       paintOutputs(ref);
     }catch(e){
       $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
       $('#recall').innerHTML = '';
-    $('#application').innerHTML = '';
-      $('#background').innerHTML = '';
       $('#prophetic').innerHTML = '';
     }
   });
@@ -938,8 +1012,6 @@ Context (surrounding sermon sentences): ${contextWindow || '(none)'}`;
       notesDB[ref] = {
         revelation: s.Revelation || '',
         recall: recall || '',
-        application: s.Application || '',
-        background:  s.Background || '',
         prophetic:   s['Prophetic Declaration'] || '',
         notes: []
       };
@@ -947,8 +1019,6 @@ Context (surrounding sermon sentences): ${contextWindow || '(none)'}`;
     }catch(e){
       $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
       $('#recall').innerHTML = '';
-    $('#application').innerHTML = '';
-      $('#background').innerHTML = '';
       $('#prophetic').innerHTML = '';
     }
   }
