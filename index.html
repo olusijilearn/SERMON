@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bible Topic Study + Sermon Explainer • Gemini 2.5</title>
+  <title>Bible Clarity Study + Sermon Explainer • Gemini 2.5</title>
   <style>
     :root{
       --bg:#f7f7f8; --text:#1e1e1e; --card:#fff; --border:#e0e0e0;
@@ -125,7 +126,7 @@
 <body>
 <div class="app">
   <section class="panel">
-    <h2>Bible Topic Study + Sermon Explainer</h2>
+    <h2>Bible Clarity Study + Sermon Explainer</h2>
 
     <input id="apikey" placeholder="Paste Gemini API key (AIza...)" />
     <div class="toolbar">
@@ -141,15 +142,15 @@
     <div class="muted">Tip: run a local server to auto-load notes.json at start.</div>
 
     <div class="sectionBox">
-      <div class="muted"><b>Topic Study (Framework Mode)</b></div>
-      <input id="topicInput" placeholder="Enter Topic e.g. Grace, Faith, Mercy, Holiness" />
+      <div class="muted"><b>Topic Clarity Study</b></div>
+      <input id="topicInput" placeholder="Enter topic or question e.g. Grace, Prayer, Who are the ye in John 14:13?" />
       <div class="toolbar">
-        <button id="analyzeTopicBtn" type="button">Study Topic</button>
+        <button id="analyzeTopicBtn" type="button">Study for Clarity</button>
         <button id="clearTopicBtn" type="button" class="secondary">Clear</button>
       </div>
       <div class="tipBox">
-        Uses your study framework:<br>
-        Introduction → Methods &amp; Results → Discussion → MFM Prayer Style
+        Uses your current movement-based clarity flow:<br>
+        Revelation Flow → Recall Trainer → Prophetic Declaration
       </div>
       <div class="okBox" id="topicOK"></div>
       <div class="errorBox" id="topicError"></div>
@@ -210,13 +211,8 @@ Romans 8:28 - And we know that all things work together...
     </div>
 
     <div class="col">
-      <h2>Application / Discussion</h2>
-      <div class="output" id="application"></div>
-    </div>
-
-    <div class="col">
-      <h2>Background / Case Studies</h2>
-      <div class="output" id="background"></div>
+      <h2>Recall Trainer</h2>
+      <div class="output" id="recall"></div>
     </div>
 
     <div class="col">
@@ -282,12 +278,11 @@ Romans 8:28 - And we know that all things work together...
     }[m]));
   }
   function setLoading(){
-    $('#revelation').innerHTML = $('#application').innerHTML = $('#background').innerHTML = $('#prophetic').innerHTML = 'Loading…';
+    $('#revelation').innerHTML = $('#recall').innerHTML = $('#prophetic').innerHTML = 'Loading…';
   }
   function clearOutputs(){
     $('#revelation').innerHTML = '';
-    $('#application').innerHTML = '';
-    $('#background').innerHTML = '';
+    $('#recall').innerHTML = '';
     $('#prophetic').innerHTML = '';
   }
   function cleanModelText(s){
@@ -330,7 +325,7 @@ Romans 8:28 - And we know that all things work together...
       }
     });
   }
-  ['#revelation','#application','#background','#prophetic'].forEach(sel=>enableSelectionHighlight($(sel)));
+  ['#revelation','#recall','#prophetic'].forEach(sel=>enableSelectionHighlight($(sel)));
 
   if (localStorage.getItem(KEY)) $('#apikey').value = '•••••';
 
@@ -431,23 +426,21 @@ Romans 8:28 - And we know that all things work together...
   });
 
   function ensureRec(ref){
-    notesDB[ref] = notesDB[ref] || { revelation:'', application:'', background:'', prophetic:'', notes:[] };
+    notesDB[ref] = notesDB[ref] || { revelation:'', recall:'', prophetic:'', notes:[] };
     if (!Array.isArray(notesDB[ref].notes)) notesDB[ref].notes=[];
   }
   function paintOutputs(ref){
     const rec = notesDB[ref]; if(!rec) return;
     $('#revelation').innerHTML = rec.revelation || '';
-    $('#application').innerHTML = rec.application || '';
-    $('#background').innerHTML  = rec.background  || '';
-    $('#prophetic').innerHTML   = rec.prophetic   || '';
+    $('#recall').innerHTML     = rec.recall || '';
+    $('#prophetic').innerHTML  = rec.prophetic || '';
     renderNotes(ref);
   }
   function saveOutputs(ref){
     ensureRec(ref);
     notesDB[ref].revelation = $('#revelation').innerHTML;
-    notesDB[ref].application = $('#application').innerHTML;
-    notesDB[ref].background  = $('#background').innerHTML;
-    notesDB[ref].prophetic   = $('#prophetic').innerHTML;
+    notesDB[ref].recall     = $('#recall').innerHTML;
+    notesDB[ref].prophetic  = $('#prophetic').innerHTML;
   }
 
   $('#saveJsonBtn').addEventListener('click', ()=>{
@@ -521,8 +514,79 @@ Romans 8:28 - And we know that all things work together...
     return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 
+  function buildRecallTrainerPrompt(topicLike, sermonText){
+    return `You are building a MEMORY TRAINER from a sermon or Bible study.
+
+TOPIC OR TITLE:
+${topicLike || '(none provided)'}
+
+SERMON / STUDY TEXT:
+${sermonText}
+
+Your task is to compress the message for long-term recall.
+
+OUTPUT ONLY under these exact Markdown headings:
+## SPINE
+## MOVEMENTS
+## ANCHOR SCRIPTURES
+## 1-LINE TRIGGERS
+
+RULES:
+- Keep it compact, memorable, and teachable
+- The SPINE must be one sentence only
+- MOVEMENTS must be 3 to 5 bullets maximum
+- ANCHOR SCRIPTURES must pair each movement with its main text
+- 1-LINE TRIGGERS must be short recall cues that can restart the sermon from memory
+- Do not preach again
+- Do not write paragraphs unless absolutely necessary
+- Make it usable for someone who wants to teach the topic 2 months later without notes`;
+  }
+
+  function buildRecallHTML(raw){
+    const cleaned = cleanModelText(raw);
+    const sections = { SPINE:'', MOVEMENTS:'', 'ANCHOR SCRIPTURES':'', '1-LINE TRIGGERS':'' };
+    const lines = cleaned.split(/\r?\n/);
+    let current = null;
+
+    for (const rawLine of lines){
+      const line = rawLine.trim();
+      const m = /^(?:##\s*|\*\*\s*)?(SPINE|MOVEMENTS|ANCHOR SCRIPTURES|1-LINE TRIGGERS)(?:\s*\*\*)?\s*:?\s*$/i.exec(line);
+      if (m){
+        current = m[1].toUpperCase();
+        continue;
+      }
+      if (current) sections[current] += rawLine + '\n';
+    }
+
+    const order = ['SPINE','MOVEMENTS','ANCHOR SCRIPTURES','1-LINE TRIGGERS'];
+    let out = '';
+    for (const key of order){
+      let block = sections[key].trim();
+      if (!block) continue;
+      block = escapeHTML(block)
+        .replace(/^[-*]\s+(.+)$/gm, '• $1')
+        .replace(/\n{2,}/g, '<br><br>')
+        .replace(/\n/g, '<br>');
+      out += `<div style="margin-bottom:14px"><b>${key}</b><br>${block}</div>`;
+    }
+
+    if (!out){
+      out = escapeHTML(cleaned).replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+    }
+    return out;
+  }
+
+  async function generateRecallTrainer(topicLike, sourceText){
+    try{
+      const raw = await callGemini(buildRecallTrainerPrompt(topicLike, sourceText));
+      return buildRecallHTML(raw);
+    }catch(_){
+      return '';
+    }
+  }
+
   function splitIntoSections(md){
-    const out = { Revelation:'', Application:'', Background:'', 'Prophetic Declaration':'' };
+    const out = { Revelation:'', 'Prophetic Declaration':'' };
     const cleaned = cleanModelText(md);
 
     function normalizeSectionHTML(text){
@@ -537,14 +601,11 @@ Romans 8:28 - And we know that all things work together...
 
     for (const rawLine of lines){
       const line = rawLine.trim();
-
-      const headingMatch = /^(?:#{1,6}\s*|\*\*\s*)?(revelation|background|application|prophetic declaration|prophetic)(?:\s*\*\*)?\s*:?\s*$/i.exec(line);
+      const headingMatch = /^(?:#{1,6}\s*|\*\*\s*)?(revelation|prophetic declaration|prophetic)(?:\s*\*\*)?\s*:?\s*$/i.exec(line);
 
       if (headingMatch){
         const h = headingMatch[1].toLowerCase();
         if (h.startsWith('revelation')) current = 'Revelation';
-        else if (h.startsWith('application')) current = 'Application';
-        else if (h.startsWith('background')) current = 'Background';
         else current = 'Prophetic Declaration';
         continue;
       }
@@ -669,12 +730,12 @@ The audience must first AGREE before they are challenged.
 
 OUTPUT ONLY UNDER THESE HEADINGS:
 
-## Revelation Flow
+## Revelation
 Write one continuous sermon with 3 movements maximum.
 Do NOT make unrelated dimensions.
 Do NOT create independent teachings.
 Every movement must connect tightly to the controlling revelation.
-Application must be embedded inside the flow, not separated.
+Embed application naturally inside the flow instead of creating a separate application section.
 
 ## Prophetic Declaration
 Give 12 strong MFM-style prayer points flowing directly from the sermon’s controlling revelation.
@@ -685,15 +746,14 @@ If one section feels like it could stand alone as a different sermon, remove or 
 }
 
 function buildTopicSupportPrompt(topic, draftText){
-  return `You are given an already-written Bible topic study draft.
+  return `You are given an already-written Bible clarity study draft.
 
-TOPIC: ${topic}
+TOPIC OR QUESTION: ${topic}
 
 VERY IMPORTANT:
-Do NOT rewrite the draft.
+Do NOT rewrite the draft into a contrast sermon.
+Do NOT insert opening language about incomplete knowledge unless truly necessary.
 Do NOT reduce its sweetness, depth, tone, or preaching richness.
-Do NOT narrow the topic.
-Do NOT replace the existing ideas with verse-driven wording.
 
 Your only job is to PRESERVE the original wording as much as possible and ADD scriptural backing under each major point.
 
@@ -709,12 +769,8 @@ Rules:
 - Only make minimal edits where necessary for flow
 - Use KJV only
 - Keep the explanation dominant and let scripture support it
-- Do not turn the whole topic into salvation unless the topic is salvation
-- If the topic is Grace, support the different dimensions of grace broadly, not just saving grace
 - Keep the exact Markdown headings:
 ## Revelation
-## Background
-## Application
 ## Prophetic Declaration
 
 For the prayer section:
@@ -755,11 +811,11 @@ ${draftText}`;
     const finalRaw = await callGemini(supportPrompt);
 
     const s = splitIntoSections(finalRaw);
+    const recall = await generateRecallTrainer(topic, finalRaw);
 
     notesDB[ref] = {
       revelation: s.Revelation || finalRaw.replace(/\n/g,'<br>'),
-      application: s.Application || '',
-      background: s.Background || '',
+      recall: recall || '',
       prophetic: s['Prophetic Declaration'] || '',
       notes: []
     };
@@ -795,12 +851,12 @@ ${draftText}`;
       const prompt = buildVersePrompt({book, chapter, verse, verseText, contextText: ctx});
       const raw = await callGemini(prompt);
       const s = splitIntoSections(raw);
-      notesDB[ref] = { revelation:s.Revelation||'', background:s.Background||'', application:s.Application||'', prophetic:s['Prophetic Declaration']||'', notes:[] };
+      const recall = await generateRecallTrainer(`${book} ${chapter}:${verse}`, raw);
+      notesDB[ref] = { revelation:s.Revelation||'', recall:recall||'', prophetic:s['Prophetic Declaration']||'', notes:[] };
       paintOutputs(ref);
     }catch(e){
       $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
-      $('#application').innerHTML = '';
-      $('#background').innerHTML = '';
+      $('#recall').innerHTML = '';
       $('#prophetic').innerHTML = '';
     }
   });
@@ -968,19 +1024,18 @@ Context (surrounding sermon sentences): ${contextWindow || '(none)'}`;
       });
       const raw = await callGemini(prompt);
       const s = splitIntoSections(raw);
+      const recall = await generateRecallTrainer(sentence, raw);
 
       notesDB[ref] = {
         revelation: s.Revelation || '',
-        application: s.Application || '',
-        background:  s.Background || '',
+        recall: recall || '',
         prophetic:   s['Prophetic Declaration'] || '',
         notes: []
       };
       paintOutputs(ref);
     }catch(e){
       $('#revelation').innerHTML = 'Error: ' + escapeHTML(e.message);
-      $('#application').innerHTML = '';
-      $('#background').innerHTML = '';
+      $('#recall').innerHTML = '';
       $('#prophetic').innerHTML = '';
     }
   }
